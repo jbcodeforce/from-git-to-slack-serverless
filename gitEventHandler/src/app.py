@@ -40,13 +40,20 @@ def lambda_handler(event, context):
     #bodyDecoded = base64.b64decode(bodyEncoded).decode('UTF-8')
     body=json.loads(event["body"])
     print(body)
-    repo = body["repository"]["name"]
-    stars = body["repository"]["stargazers_count"]
     message = { "attachments": [{}] }
-    message["attachments"][0]["pretext"] = "There is a new Github star for " + repo + " repo!"
-    message["attachments"][0]["text"] = repo + " now has " + str(stars) + " stars!" + "\nYour new :star: was made by ."
+    repo = body["repository"]["name"]
+    
+    if body["pusher"] != None:
+        message["attachments"][0]["pretext"] = "A new push was made on Github " + repo + "!"
+        message["attachments"][0]["text"] = "Message  " + body["head_commit"]["message"] +", \nMade by " + body["head_commit"]["author"]["username"]        
+        message["attachments"][0]["thumb_url"] = body["sender"]["avatar_url"]
+    else:
+        stars = body["repository"]["stargazers_count"]
+        message["attachments"][0]["pretext"] = "There is a new Github star for " + repo + " repo!"
+        message["attachments"][0]["text"] = repo + " now has " + str(stars) + " stars!" + "\nYour new :star: was made by " + body["sender"]["login"]
+        message["attachments"][0]["thumb_url"] = body["sender"]["avatar_url"]
     message["attachments"][0]["footer"] = "Serverless App"
-    message["attachments"][0]["footer_icon"] = "https://platform.slack-edge.com/img/default_application_icon.png"
+    message["attachments"][0]["footer_icon"] = "https://platform.slack-edge.com/img/default_application_icon.png" 
 
     send_slack_message(message)
 

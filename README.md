@@ -3,7 +3,13 @@
 This sample is to illutrate the use of AWS SAM, and Lambda, API Gateway, Webhook and Slack. It is based on this [set of articles](https://aws.amazon.com/blogs/compute/getting-started-with-serverless-for-developers-part-1/) but using the following difference:
 
 * Python based lambda with an unique function to support the business logic of supporting different event types
+* Use a coarse grained API where all the git events are managed by a single Function. This is more inline with domain driven design and EDA design: the domain is the Software Configuration Management (GitHub), Aggregate is GitCommand, and events are at least CodePushed, StarAdded, ForkHappened.... 
+* Still using API Gateway to present a webhook to Git
 * SAM focus
+
+The architecture looks like in the following diagram:
+
+![](./docs/diagram.drawio.png)
 
 ## Development steps
 
@@ -19,35 +25,39 @@ This sample is to illutrate the use of AWS SAM, and Lambda, API Gateway, Webhook
     sam init --runtime python3.9 --dependency-manager pip --app-template hello-world --name gitEventHandler
     ```
 
-* Rename `src` folder
-* Modify code to use request, env variable and json. Add a method to call Slack WebHook.
+* Change to `src` folder to keep lambda function
+* Modify code to use `requests` library, env variable and json. Add a method to call Slack WebHook.
 
     ```python
     def send_slack_message(payload):
         webhook = os.environ.get("SLACK_WEBHOOK")
         return requests.post(webhook, json.dumps(payload))
     ```
+
 * Install dependencies
 
     ```sh
     pip3 install -r requirements.txt 
     ```
-* Unit testing can be done with, with the following command in one terminal
+
+* Unit testing can be done with the following command in one terminal:
 
     ```sh
     export SLACK_WEBHOOK=....
     sam local start-api --port 8080
     ```
 
-    And in another terminal
+    And in another terminal:
 
     ```sh
     curl -X POST http://localhost:8080/ -H 'Content-type: application/json' -d @events/unittestevent.json
     ```
 
-    In fact the Slack app should get the message.
+    As a result the Slack app should get the message.
 
-* Deploy the application to AWS
+    ![](./docs/slack-1.png)
+
+* Deploy the application to AWS using SAM cli:
 
     ```sh
     sam build
@@ -55,7 +65,7 @@ This sample is to illutrate the use of AWS SAM, and Lambda, API Gateway, Webhook
     sam deploy --guided
     ```
 
-    Below is an example of input
+    Below is an example of input to enter:
 
     ```sh
     	Stack Name [sam-app]: gitEventHandler
@@ -73,15 +83,27 @@ This sample is to illutrate the use of AWS SAM, and Lambda, API Gateway, Webhook
 	SAM configuration environment [default]: 
     ```
 
-    The output is a Cloud Formation:
+    The output is a Cloud Formation with the followng elements:
 
     ```
     GitEventHandlerGitEventsPermission  AWS::Lambda::Permission                      
-    GitEventHandlerRole                 AWS::IAM::Role
+    GitEventHandlerRole                 AWS::IAM::Role        -> to be able to write to CloudWatch
     GitEventHandler                     AWS::Lambda::Function 
     ServerlessHttpApiApiGatewayDefaultS AWS::ApiGatewayV2::Stage 
     ServerlessHttpApi                   AWS::ApiGatewayV2::Api 
     ```
+
+    IAM Role with policy to write to CloudWatch:
+
+    ![](./docs/iam-role.png)
+
+    Lambda:
+
+    ![](./docs/lambda-fct.png)
+
+    API Gateway with API to proxy the Lambda function:
+
+    ![](./docs/api-gtw.png)
 
 * Add the generated samconfig.toml to .gitignore as it contains secrets.
 * If need to resynch the code
