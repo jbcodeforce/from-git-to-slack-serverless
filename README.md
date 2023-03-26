@@ -105,9 +105,26 @@ The architecture looks like in the following diagram:
 
     ![](./docs/api-gtw.png)
 
+    And the permission to invoke the lambda from the API gateway as a principal
+
+    ![](./docs/lambda-permission.png)
+
+    The resource based policy specifies that the API Gateway can invoke the function, with POST operation only:
+
+    ![](./docs/lambda-res-pol.png)
+
 * Add the generated samconfig.toml to .gitignore as it contains secrets.
-* If need to resynch the code
+* If needed to resynch the code back to AWS do:
 
     ```sh
     sam sync --code --stack-name gitEventHandler
+    ```
+* Any push to this repo or a star on this repo will generate a message into Slack:
+
+    ![](./docs/slack-2.png)
+
+* Delete everything:
+
+    ```sh
+    sam delete
     ```
